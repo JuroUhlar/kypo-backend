@@ -1,0 +1,26 @@
+CREATE TABLE events (
+ id integer PRIMARY KEY,
+ player_ID integer,
+ timestamp text,
+ logical_time text,
+ level text,
+ event text
+)
+
+
+
+INSERT INTO events (player_ID,timestamp,logical_time,level,event)
+VALUES
+ ("17280","2016-04-07 06:41:09","00:00:00","1","Game started")
+
+
+function event(id, timestamp, logical_time, level, event) {
+    this.ID = id;
+    this.timestamp = timestamp;
+    this.logical_time = logical_time;
+    this.level = level;
+    this.event = event;
+    return this;
+}
+
+events.push(new event(row.player_ID, row.timestamp, row.logical_time, row.level,row.event));
