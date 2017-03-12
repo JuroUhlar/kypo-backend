@@ -29,6 +29,7 @@ GET http://localhost:5000/events?level=1&event=Game started
 * return JSON of all events in the start-game events in the first level
 
 POST http://localhost:5000/event
+
 *headers:*
 
 content type: application/json; charset=utf-8
