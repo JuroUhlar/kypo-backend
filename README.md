@@ -32,7 +32,8 @@ POST http://localhost:5000/event
 *headers:*
 content type: application/json; charset=utf-8
 *body:*
- {"ID": "77777","timestamp": "2016-04-07 06:41:09","logical_time": "99:99:99","level": "65","event": "TEST"}
+{"ID": "77777","timestamp": "2016-04-07 06:41:09","logical_time": "99:99:99","level": "65","event": "TEST"}
+
 * enters new event into Database
 
 
