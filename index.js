@@ -51,8 +51,8 @@ app.post('/event', function(req, res) {
 
 
 
-app.listen(app.get('port'), function() {
-  console.log('Node app is running on port', app.get('port'));
+app.listen(app.get('port'), app.get('ip_address'), function() {
+  console.log('Node app is running on port', app.get('port'), app.get('ip_address'));
   // console.log(database.getAllEvents());
 });
 
