@@ -47,7 +47,12 @@ app.post('/event', function(req, res) {
   database.addEvent(req, res);
 });
 
-
+app.post(['/events-bulk','/events-bulk/','/events-bulk/:gameID'], function(req, res) {
+  console.log("\nPOST");
+  console.log(req.url);
+  console.log("Request body: " + JSON.stringify(req.body));
+  database.addEventsBulk(req, res);
+});
 
 
 

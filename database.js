@@ -1,44 +1,56 @@
 var sqlite3 = require('sqlite3').verbose()
 var db = new sqlite3.Database('mydb.db')
+var jsonfile = require('jsonfile')
 
-
-// function sqliteExample() {
-//   db.serialize(function () {
-//     db.run('CREATE TABLE lorem (info TEXT)')
-//     var stmt = db.prepare('INSERT INTO lorem VALUES (?)')
-
-//     for (var i = 0; i < 10; i++) {
-//       stmt.run('Ipsum ' + i)
-//     }
-
-//     stmt.finalize()
-
-//     db.each('SELECT rowid AS id, info FROM lorem', function (err, row) {
-//       console.log(row.id + ': ' + row.info)
-//     })
-//   })
-
-//   db.close()
-// }
+jsonfile.spaces = 4;
 
 
 
-function jsonToDB() {
-    var data = require('./all-events');
-    var statement = 'INSERT INTO events (player_ID,timestamp,logical_time,level,event) VALUES ';        
+
+
+exports.addEventsBulk = function(req, res) {
+    var data = req.body;
+
+    // Check integrity of data. If contract is not upheld, abort operation
+    for(var i = 0; i<data.length; i++) {
+        if(!isEventValid(data[i])) {
+            console.log("Parsing error, operatation aborted. \nBody of request must contain array of JSON event objects with player_ID,timestamp,logical_time,level,event,game_instance_ID.");
+            res.send("Parsing error, operatation aborted. \nBody of request must contain array of JSON event objects with player_ID,timestamp,logical_time,level,event,game_instance_ID.");
+            res.end;
+            return;
+        }
+    }
+
+    //Game game_instance_Id spacified as URL parameter, add it to events that have no game_instance_id property
+    if(req.params.gameID) {
+        console.log("Specified bulk game instance ID: ", req.params.gameID);
+    } else {
+           console.log("No game ID added as parameter. Request paramenters: ", req.params);
+    }
+    var statement = 'INSERT INTO events (player_ID,timestamp,logical_time,level,event, game_instance_id) VALUES ';        
     for(var i = 0; i<data.length; i++) {
       statement += stringifyEventJson(data[i]) + ',\n';
     }
     statement = statement.slice(0, -2);
     // console.log(statement);
-    db.run(statement);
+    db.run(statement, function (err) {
+        if(err) {
+            // console.log(err);
+            res.send('Database error: Operation failed.  \n');
+            res.end();
+        } else {
+            console.log("\nAll events (" + data.length + ") successfully entered into database.");
+            res.send("All events (" + data.length + ") successfully entered into database.");
+            res.end();
+        }
+    });
 }
 
 
 exports.getEvents = function (req, res) {
     var events = [];
 
-    var statement = 'SELECT  player_ID,timestamp, logical_time, level, event FROM events';
+    var statement = 'SELECT  player_ID,timestamp, logical_time, level, event, game_instance_id FROM events';
 
     if(Object.keys(req.query).length != 0) {
         statement += queryBuilder(req.query);
@@ -51,12 +63,14 @@ exports.getEvents = function (req, res) {
 
     db.each(statement,
         function (err, row) {
+            // console.log(row);
             var event = {
                 ID: row.player_ID,
                 timestamp: row.timestamp,
                 logical_time: row.logical_time,
                 level: row.level,
-                event: row.event 
+                event: row.event,
+                game_instance_id: row.game_instance_ID 
             };
             events.push(event);
         }, 
@@ -68,20 +82,58 @@ exports.getEvents = function (req, res) {
 }
 
 exports.addEvent = function (req,res) {
-    var statement = 'INSERT INTO events (player_ID,timestamp,logical_time,level,event) VALUES ';
-    statement += stringifyEventJson(req.body);   
-    db.run(statement);
-    res.end();
-    console.log(statement + "\nEvent successfully entered into database.");
+    var event = req.body;
+    if(!isEventValid(event)) {
+        console.log("Parsing error, operatation aborted. Body of request must contain JSON event object with player_ID,timestamp,logical_time,level,event,game_instance_ID.");
+        res.send("Parsing error, operatation aborted. Body of request must contain JSON event object with player_ID,timestamp,logical_time,level,event,game_instance_ID.");
+        res.end;
+        return;
+    }
+    var statement = 'INSERT INTO events (player_ID,timestamp,logical_time,level,event,game_instance_ID) VALUES '; 
+    // console.log(event);
+    statement += stringifyEventJson(event);   
+    db.run(statement, function(err) {
+         if(err) {
+            // console.log(err);
+            res.send('Database error: Operation failed.  \n');
+            res.end();
+        } else {
+            console.log(statement + "\nEvent successfully entered into database.");
+            res.send("Event successfully entered into database.");
+            res.end();
+        }
+    });
 }
 
 
-function deleteAllEvents() {
-   db.run("DELETE FROM events");
+function deleteAllEvents(callback) {
+   console.log("cleaning database...");
+   db.run("DELETE FROM events", [], function(err) {
+        if(err) {
+            console.log(err)
+        } else {
+            console.log(" >  All data succesfully removed.")
+        }
+   });
+}
+
+
+
+function jsonToDB() {
+    var data = require('./all-events-new');
+    var statement = 'INSERT INTO events (player_ID,timestamp,logical_time,level,event, game_instance_id) VALUES ';        
+    for(var i = 0; i<data.length; i++) {
+      statement += stringifyEventJson(data[i]) + ',\n';
+    }
+    statement = statement.slice(0, -2);
+    // console.log(statement);
+    db.run(statement);
 }
 
 function stringifyEventJson(event) {
-  return "('" + event.ID +"','"+ event.timestamp +"','"+ event.logical_time +"','"+ event.level +"','"+ event.event + "')";
+  return "('" + event.ID +"','"+ event.timestamp +"','"+ 
+                event.logical_time +"','"+ event.level +"','"+ event.event + "','"+
+                 event.game_instance_id + "')";
  }
 
 // deleteAllEvents();
@@ -101,3 +153,44 @@ function queryBuilder(query) {
   });
   return resultString;
 }
+
+function addGameIdToJsonFile(filePath, gameId) {
+    console.log(filePath);
+    jsonfile.readFile(filePath, function(err, obj) {
+        for(var i = 0; i<obj.length; i++) {
+            obj[i].game_instance_id = gameId;
+        }
+        console.log(obj);
+        jsonfile.writeFile(filePath.slice(0,-5) + '-new' + ".json", obj, function (err) {
+            if(err) {
+              console.error(err);  
+          } else {
+              console.log("New file succesfully created.");
+          }
+        })
+    })
+}
+
+function isEventValid(event) {
+    if (event.ID === undefined || event.ID === null ||
+        event.timestamp === undefined || event.timestamp === null ||
+        event.logical_time === undefined || event.logical_time === null ||
+        event.level === undefined || event.level === null ||
+        event.event === undefined || event.event === null) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
+
+// Calling maintanence fuctions from commandline
+var args = process.argv.slice(2);
+
+if(args[0] === "-clean") {
+    deleteAllEvents();
+}
+
+// addGameIdToJsonFile("all-events.json", "all-events");
+// jsonToDB();
+// getAllEvents();
