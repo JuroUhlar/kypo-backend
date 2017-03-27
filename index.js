@@ -39,6 +39,13 @@ app.get('/events', function(req, res) {
   database.getEvents(req,res);
 });
 
+app.get('/games', function(req, res) {
+  console.log("\nGET");
+  console.log(req.url);
+  console.log("Request body: " + JSON.stringify(req.body));
+  database.getGameIds(req,res);
+});
+
 
 app.post('/event', function(req, res) {
   console.log("\nPOST");

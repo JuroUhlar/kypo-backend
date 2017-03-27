@@ -4,49 +4,6 @@ var jsonfile = require('jsonfile')
 
 jsonfile.spaces = 4;
 
-
-
-
-
-exports.addEventsBulk = function(req, res) {
-    var data = req.body;
-
-    // Check integrity of data. If contract is not upheld, abort operation
-    for(var i = 0; i<data.length; i++) {
-        if(!isEventValid(data[i])) {
-            console.log("Parsing error, operatation aborted. \nBody of request must contain array of JSON event objects with player_ID,timestamp,logical_time,level,event,game_instance_ID.");
-            res.send("Parsing error, operatation aborted. \nBody of request must contain array of JSON event objects with player_ID,timestamp,logical_time,level,event,game_instance_ID.");
-            res.end;
-            return;
-        }
-    }
-
-    //Game game_instance_Id spacified as URL parameter, add it to events that have no game_instance_id property
-    if(req.params.gameID) {
-        console.log("Specified bulk game instance ID: ", req.params.gameID);
-    } else {
-           console.log("No game ID added as parameter. Request paramenters: ", req.params);
-    }
-    var statement = 'INSERT INTO events (player_ID,timestamp,logical_time,level,event, game_instance_id) VALUES ';        
-    for(var i = 0; i<data.length; i++) {
-      statement += stringifyEventJson(data[i]) + ',\n';
-    }
-    statement = statement.slice(0, -2);
-    // console.log(statement);
-    db.run(statement, function (err) {
-        if(err) {
-            // console.log(err);
-            res.send('Database error: Operation failed.  \n');
-            res.end();
-        } else {
-            console.log("\nAll events (" + data.length + ") successfully entered into database.");
-            res.send("All events (" + data.length + ") successfully entered into database.");
-            res.end();
-        }
-    });
-}
-
-
 exports.getEvents = function (req, res) {
     var events = [];
 
@@ -81,6 +38,53 @@ exports.getEvents = function (req, res) {
     });
 }
 
+
+exports.addEventsBulk = function(req, res) {
+    var data = req.body;
+
+    // Check integrity of data. If contract is not upheld, abort operation
+    for(var i = 0; i<data.length; i++) {
+        if(!isEventValid(data[i])) {
+            console.log("Parsing error, operatation aborted. \nBody of request must contain array of JSON event objects with player_ID,timestamp,logical_time,level,event,game_instance_ID.");
+            res.send("Parsing error, operatation aborted. \nBody of request must contain array of JSON event objects with player_ID,timestamp,logical_time,level,event,game_instance_ID.");
+            res.end;
+            return;
+        }
+    }
+
+    //If Game game_instance_Id is specified as URL parameter, add it to events that have no game_instance_id property
+    if(req.params.gameID) {
+        console.log("Specified bulk game instance ID: '", req.params.gameID + "'");
+        console.log("Adding specified game_instance_id to all events with indefined game_instance_ID. ");
+        for(var i = 0; i< data.length; i++) {
+            if(data[i].game_instance_id === undefined) {
+                data[i].game_instance_id = req.params.gameID;
+            }
+        }
+    } else {
+           console.log("No game ID added as parameter. Inserting events 'as-is'. Request paramenters: ", req.params);
+    }
+
+    var statement = 'INSERT INTO events (player_ID,timestamp,logical_time,level,event, game_instance_id) VALUES ';        
+    for(var i = 0; i<data.length; i++) {
+      statement += stringifyEventJson(data[i]) + ',\n';
+    }
+    statement = statement.slice(0, -2);
+    // console.log(statement);
+    db.run(statement, function (err) {
+        if(err) {
+            // console.log(err);
+            res.send('Database error: Operation failed.  \n');
+            res.end();
+        } else {
+            console.log("\nAll events (" + data.length + ") successfully entered into database.");
+            res.send("All events (" + data.length + ") successfully entered into database.");
+            res.end();
+        }
+    });
+}
+
+
 exports.addEvent = function (req,res) {
     var event = req.body;
     if(!isEventValid(event)) {
@@ -103,6 +107,27 @@ exports.addEvent = function (req,res) {
             res.end();
         }
     });
+}
+
+exports.getGameIds = function (req,res) {
+    var games = [];
+    var statement = "SELECT DISTINCT game_instance_ID from events";
+
+    db.each(statement,
+        function AddEachResultToArray (err, row) {
+            console.log(row);
+            // var game = {
+            //    game_instance_id: row.game_instance_ID
+            // } 
+            // games.push(game);
+            games.push(row.game_instance_ID);
+        }, 
+        function SendResponseToClientWhenDataIsLoaded () {
+            res.json(games);
+            console.log("GameIDs returned: " + games.length);
+            res.end();
+    });
+
 }
 
 
