@@ -216,6 +216,6 @@ if(args[0] === "-clean") {
     deleteAllEvents();
 }
 
-addGameIdToJsonFile("all-evesnts.json", "all-events");
+
 // jsonToDB();
 // getAllEvents();
