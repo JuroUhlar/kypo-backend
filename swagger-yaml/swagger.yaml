@@ -20,7 +20,7 @@ tags:
 schemes:
 - "https"
 paths:
-  /games:
+  /games/{playerID}:
     get:
       tags:
       - "viz client"
@@ -29,7 +29,13 @@ paths:
         \ a list of unique game instance IDs.  \n"
       produces:
       - "application/json"
-      parameters: []
+      parameters:
+      - name: "playerID"
+        in: "path"
+        description: "If specified, the response contains only the games the specified\
+          \ player took part in. If empty, all distinct game IDs are returned."
+        required: true
+        type: "string"
       responses:
         200:
           description: "Array of strings representing game_instance_ID (s)"
