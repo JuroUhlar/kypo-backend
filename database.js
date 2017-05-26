@@ -113,13 +113,16 @@ exports.getGameIds = function (req,res) {
     var games = [];
     var statement = "SELECT DISTINCT game_instance_ID from events";
 
+
+    if (req.params.playerID) {
+        statement += " WHERE player_ID = " + req.params.playerID;
+    }
+
+    console.log(statement);
+
     db.each(statement,
         function AddEachResultToArray (err, row) {
             console.log(row);
-            // var game = {
-            //    game_instance_id: row.game_instance_ID
-            // } 
-            // games.push(game);
             games.push(row.game_instance_ID);
         }, 
         function SendResponseToClientWhenDataIsLoaded () {
@@ -145,7 +148,7 @@ function deleteAllEvents(callback) {
 
 
 function jsonToDB() {
-    var data = require('./all-events-new');
+    var data = require('./testing-alltogether');
     var statement = 'INSERT INTO events (player_ID,timestamp,logical_time,level,event, game_instance_id) VALUES ';        
     for(var i = 0; i<data.length; i++) {
       statement += stringifyEventJson(data[i]) + ',\n';
@@ -161,9 +164,6 @@ function stringifyEventJson(event) {
                  event.game_instance_id + "')";
  }
 
-// deleteAllEvents();
-// var eventstring = '{"ID": 17280,"timestamp": "2016-04-07 06:41:09","logical_time": "00:00:00","level": "1","event": "Game started"}'
-// exports.AddEvent(eventstring);
 
 function queryBuilder(query) {
   var resultString = " WHERE "; 
@@ -216,6 +216,6 @@ if(args[0] === "-clean") {
     deleteAllEvents();
 }
 
-
+// deleteAllEvents();
 // jsonToDB();
 // getAllEvents();
