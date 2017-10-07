@@ -6,8 +6,9 @@ var database = require("./database.js");
 
 
 
-app.set('port', (process.env.OPENSHIFT_NODEJS_PORT || 5000));
-app.set('ip_address', (process.env.OPENSHIFT_NODEJS_IP || '0.0.0.0'))
+// app.set('port', (process.env.OPENSHIFT_NODEJS_PORT || 5000));
+app.set('port', (process.env.PORT || 5000));
+app.set('ip_address', (process.env.IP || '0.0.0.0'))
 
 app.use(express.static(__dirname + '/public'));
 app.use(bodyParser.json());
